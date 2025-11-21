@@ -5,15 +5,47 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Low-Poly Kart Time Trial</title>
 <style>
-  body { margin: 0; overflow: hidden; background: #222; }
-  #overlay { position: absolute; color: white; top: 10px; left: 10px; font-family: Arial, sans-serif; }
+  body { margin:0; overflow:hidden; background:#222; font-family: Arial, sans-serif; }
+  #menu {
+    position:absolute; top:50%; left:50%; transform:translate(-50%, -50%);
+    text-align:center; color:white;
+  }
+  #menu button {
+    padding:10px 20px; margin:5px; font-size:18px; cursor:pointer;
+    border:none; border-radius:8px; background:#ff5722; color:white;
+  }
+  #overlay {
+    position:absolute; bottom:20px; left:50%; transform:translateX(-50%);
+    text-align:center; pointer-events:none;
+  }
+  #timer {
+    font-size:32px; font-weight:bold; color:#fff;
+    background:rgba(0,0,0,0.6); padding:10px 20px; border-radius:10px;
+    text-shadow:2px 2px 4px #000; margin:5px 0;
+  }
+  #bestTime {
+    font-size:20px; color:#ffeb3b;
+    background:rgba(0,0,0,0.5); padding:5px 10px; border-radius:8px;
+    text-shadow:1px 1px 3px #000; margin:5px 0;
+  }
 </style>
 </head>
 <body>
+
+<div id="menu">
+  <h1>Select a Track</h1>
+  <button onclick="startGame(0)">Track 1 (Easy)</button>
+  <button onclick="startGame(1)">Track 2</button>
+  <button onclick="startGame(2)">Track 3</button>
+  <button onclick="startGame(3)">Track 4</button>
+  <button onclick="startGame(4)">Track 5 (Hard)</button>
+</div>
+
 <div id="overlay">
   <p id="timer">Time: 0.00s</p>
   <p id="bestTime">Best Time: --</p>
 </div>
+
 <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
 <script>
 let scene = new THREE.Scene();
@@ -22,140 +54,172 @@ let renderer = new THREE.WebGLRenderer({antialias:true});
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
-// Ground
-let groundGeo = new THREE.PlaneGeometry(500, 500, 10, 10);
-let groundMat = new THREE.MeshPhongMaterial({color: 0x228B22, flatShading:true});
-let ground = new THREE.Mesh(groundGeo, groundMat);
-ground.rotation.x = -Math.PI/2;
-scene.add(ground);
-
-// Track (predefined)
-let trackPoints = [
-  new THREE.Vector3(0,0,0),
-  new THREE.Vector3(40,0,0),
-  new THREE.Vector3(80,0,40),
-  new THREE.Vector3(80,0,80),
-  new THREE.Vector3(40,0,120),
-  new THREE.Vector3(0,0,120),
-  new THREE.Vector3(-40,0,80),
-  new THREE.Vector3(-40,0,40),
-  new THREE.Vector3(0,0,0)
-];
-
-// Draw track segments
-let trackMat = new THREE.MeshBasicMaterial({color:0x8B4513});
-for(let i=0;i<trackPoints.length-1;i++){
-  let start = trackPoints[i];
-  let end = trackPoints[i+1];
-  let length = start.distanceTo(end);
-  let trackGeo = new THREE.BoxGeometry(10,1,length);
-  let trackMesh = new THREE.Mesh(trackGeo, trackMat);
-  trackMesh.position.set((start.x+end.x)/2,0.5,(start.z+end.z)/2);
-  trackMesh.lookAt(end);
-  scene.add(trackMesh);
-}
-
-// Player kart
-let kartGeo = new THREE.BoxGeometry(4,2,6);
-let kartMat = new THREE.MeshPhongMaterial({color:0xff0000, flatShading:true});
-let kart = new THREE.Mesh(kartGeo, kartMat);
-kart.position.set(0,1,0);
-scene.add(kart);
-
-// Obstacles (predefined)
-let obstacles = [];
-function addObstacle(x,z){
-  let geo = new THREE.BoxGeometry(3,3,3);
-  let mat = new THREE.MeshPhongMaterial({color:0x0000ff, flatShading:true});
-  let obs = new THREE.Mesh(geo,mat);
-  obs.position.set(x,1.5,z);
-  scene.add(obs);
-  obstacles.push(obs);
-}
-// Example obstacles
-addObstacle(60,20);
-addObstacle(20,100);
-addObstacle(-20,60);
-
 // Lighting
 scene.add(new THREE.AmbientLight(0xffffff,0.5));
 let dirLight = new THREE.DirectionalLight(0xffffff,1);
 dirLight.position.set(50,50,50);
 scene.add(dirLight);
 
-// Camera
-camera.position.set(0,15,-25);
-camera.lookAt(kart.position);
+// Ground
+let groundMat = new THREE.MeshPhongMaterial({color:0x228B22, flatShading:true});
+let ground = new THREE.Mesh(new THREE.PlaneGeometry(1000,1000,50,50), groundMat);
+ground.rotation.x = -Math.PI/2;
+scene.add(ground);
 
-// Controls (Arrow + WASD)
-let keys = {};
-document.addEventListener('keydown', e=>keys[e.key.toLowerCase()]=true);
-document.addEventListener('keyup', e=>keys[e.key.toLowerCase()]=false);
+// Tracks: 5 tracks with increasing difficulty (x, y, z points)
+let tracks = [
+  [[0,0,0],[40,0,0],[40,0,40],[0,0,40],[0,0,0]], // Track 1 easy
+  [[0,0,0],[30,5,0],[60,0,30],[30,5,60],[0,0,30],[0,0,0]], // Track 2
+  [[0,0,0],[20,0,0],[40,5,20],[60,0,40],[40,5,60],[20,0,40],[0,0,20],[0,0,0]], // Track3 hills
+  [[0,0,0],[15,5,0],[30,0,15],[45,5,30],[60,0,45],[45,5,60],[30,0,45],[15,5,30],[0,0,15],[0,0,0]], // Track4 jumps
+  [[0,0,0],[10,5,0],[20,0,10],[30,5,20],[40,0,30],[30,5,40],[20,0,30],[10,5,20],[0,0,10],[0,0,0]] // Track5 hard
+];
 
-// Timer & Highscore
-let time = 0;
-let running = false;
-let bestTime = localStorage.getItem('bestTime') ? parseFloat(localStorage.getItem('bestTime')) : null;
-document.getElementById('bestTime').textContent = bestTime ? `Best Time: ${bestTime}s` : "Best Time: --";
+let trackCurve, kart, tPos, speed, obstacles=[], running=false, time=0, maxSpeed=0.001;
+let checkpoints=[];
 
-function startTimer(){
-  running=true;
-  time=0;
-}
-setInterval(()=>{
-  if(running){
-    time+=0.016;
-    document.getElementById('timer').textContent = `Time: ${time.toFixed(2)}s`;
+// Build walls
+function buildWalls(curve,numWalls=50){
+  let wallGroup = new THREE.Group();
+  for(let i=0;i<numWalls;i++){
+    let t=i/numWalls;
+    let pos=curve.getPointAt(t);
+    let next=curve.getPointAt((t+0.01)%1);
+    let dir=new THREE.Vector3().subVectors(next,pos).normalize();
+    let left=new THREE.Vector3(-dir.z,0,dir.x).multiplyScalar(7);
+    let right=left.clone().multiplyScalar(-1);
+    let wallGeo = new THREE.BoxGeometry(1,3,5);
+    let wallMat = new THREE.MeshPhongMaterial({color:0x333333});
+    let wallLeft = new THREE.Mesh(wallGeo,wallMat);
+    wallLeft.position.copy(pos.clone().add(left)); wallLeft.lookAt(next); wallGroup.add(wallLeft);
+    let wallRight = new THREE.Mesh(wallGeo,wallMat);
+    wallRight.position.copy(pos.clone().add(right)); wallRight.lookAt(next); wallGroup.add(wallRight);
   }
+  scene.add(wallGroup);
+}
+
+// Build checkpoints
+function buildCheckpoints(curve,numCheckpoints=10){
+  checkpoints=[];
+  for(let i=1;i<=numCheckpoints;i++){
+    let t=i/numCheckpoints;
+    let pos=curve.getPointAt(t);
+    let size=10;
+    let box = new THREE.Box3(
+      new THREE.Vector3(pos.x-size/2,pos.y-5,pos.z-size/2),
+      new THREE.Vector3(pos.x+size/2,pos.y+5,pos.z+size/2)
+    );
+    checkpoints.push({box:box,passed:false});
+  }
+}
+
+// Build track
+function buildTrack(trackIndex){
+  scene.children = scene.children.filter(obj=>obj===ground||obj.type==="DirectionalLight"||obj.type==="AmbientLight");
+  obstacles=[];
+
+  let pts = tracks[trackIndex].map(p=>new THREE.Vector3(p[0],p[1],p[2]));
+  trackCurve = new THREE.CatmullRomCurve3(pts,true);
+  let trackMesh = new THREE.Mesh(new THREE.TubeGeometry(trackCurve,200,5,8,true),
+                                 new THREE.MeshPhongMaterial({color:0x8B4513,flatShading:true}));
+  scene.add(trackMesh);
+
+  // Kart
+  kart = new THREE.Mesh(new THREE.BoxGeometry(4,2,6),new THREE.MeshPhongMaterial({color:0xff0000,flatShading:true}));
+  kart.position.copy(trackCurve.getPointAt(0));
+  scene.add(kart);
+
+  // Obstacles proportional to difficulty
+  let numObs=3+trackIndex*2;
+  for(let i=0;i<numObs;i++){
+    let t=Math.random();
+    let pos=trackCurve.getPointAt(t);
+    let obs=new THREE.Mesh(new THREE.BoxGeometry(3,3,3), new THREE.MeshPhongMaterial({color:0x0000ff,flatShading:true}));
+    obs.position.copy(pos); scene.add(obs); obstacles.push(obs);
+  }
+
+  buildWalls(trackCurve);
+  buildCheckpoints(trackCurve);
+
+  tPos=0; speed=0; time=0; running=false;
+  let bestTime = localStorage.getItem('bestTime_'+trackIndex);
+  document.getElementById('bestTime').textContent = bestTime ? `Best Time: ${bestTime}s` : "Best Time: --";
+}
+
+// Start game
+function startGame(trackIndex){
+  buildTrack(trackIndex);
+  document.getElementById('menu').style.display='none';
+}
+
+// Controls
+let keys = {};
+document.addEventListener('keydown',e=>keys[e.key.toLowerCase()]=true);
+document.addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
+
+// Restart track
+document.addEventListener('keydown', e=>{
+  if(e.key.toLowerCase()==='r' && trackCurve){
+    tPos=0; speed=0; time=0; running=false;
+    kart.position.copy(trackCurve.getPointAt(0));
+    kart.lookAt(trackCurve.getPointAt(0.01));
+    checkpoints.forEach(c=>c.passed=false);
+    document.getElementById('timer').textContent=`Time: 0.00s`;
+  }
+});
+
+// Timer
+setInterval(()=>{
+  if(running){time+=0.016; document.getElementById('timer').textContent=`Time: ${time.toFixed(2)}s`;}
 },16);
 
-// Game loop
-let speed=0;
-let maxSpeed=1;
-let turnSpeed=0.03;
+// Animate loop
 function animate(){
   requestAnimationFrame(animate);
+  if(!trackCurve) return;
 
   // Controls
-  if(keys['arrowup'] || keys['w']) speed += 0.02;
-  if(keys['arrowdown'] || keys['s']) speed -= 0.02;
-  speed = Math.max(Math.min(speed,maxSpeed), -maxSpeed);
-  if(keys['arrowleft'] || keys['a']) kart.rotation.y += turnSpeed;
-  if(keys['arrowright'] || keys['d']) kart.rotation.y -= turnSpeed;
+  if(keys['arrowup'] || keys['w']) speed+=0.0002;
+  if(keys['arrowdown'] || keys['s']) speed-=0.0002;
+  if(keys['arrowleft'] || keys['a']) tPos-=0.0005;
+  if(keys['arrowright'] || keys['d']) tPos+=0.0005;
+  speed=Math.max(Math.min(speed,maxSpeed),0);
+  tPos+=speed;
 
   // Move kart
-  kart.position.x += Math.sin(kart.rotation.y)*speed*5;
-  kart.position.z += Math.cos(kart.rotation.y)*speed*5;
+  let pos=trackCurve.getPointAt(tPos%1);
+  let next=trackCurve.getPointAt((tPos+0.01)%1);
+  kart.position.copy(pos); kart.lookAt(next);
 
-  // Camera follow
-  camera.position.x = kart.position.x - Math.sin(kart.rotation.y)*20;
-  camera.position.z = kart.position.z - Math.cos(kart.rotation.y)*20;
-  camera.position.y = kart.position.y + 15;
+  // Camera
+  camera.position.set(pos.x-Math.sin(kart.rotation.y)*20,pos.y+15,pos.z-Math.cos(kart.rotation.y)*20);
   camera.lookAt(kart.position);
 
-  // Obstacles: slow down on contact
+  // Obstacles slow down
   obstacles.forEach(obs=>{
-    let dx = kart.position.x - obs.position.x;
-    let dz = kart.position.z - obs.position.z;
-    let dist = Math.sqrt(dx*dx + dz*dz);
-    if(dist < 5) speed *= 0.5;
+    let dx=kart.position.x-obs.position.x;
+    let dz=kart.position.z-obs.position.z;
+    let dy=kart.position.y-obs.position.y;
+    let dist=Math.sqrt(dx*dx+dz*dz+dy*dy);
+    if(dist<5) speed*=0.5;
   });
 
-  // Check finish line
-  let finish = trackPoints[0];
-  let dx = kart.position.x - finish.x;
-  let dz = kart.position.z - finish.z;
-  if(running && Math.sqrt(dx*dx+dz*dz)<5){
+  // Check checkpoints
+  checkpoints.forEach(c=>{ if(!c.passed && c.box.containsPoint(kart.position)) c.passed=true; });
+  let allPassed=checkpoints.every(c=>c.passed);
+
+  // Finish line
+  if(running && allPassed && tPos%1<speed){
     running=false;
-    if(!bestTime || time<bestTime){
-      bestTime = time.toFixed(2);
-      localStorage.setItem('bestTime',bestTime);
-      document.getElementById('bestTime').textContent = `Best Time: ${bestTime}s`;
+    let trackIndex = tracks.findIndex(t=>t[0][0]===trackCurve.points[0].x && t[0][2]===trackCurve.points[0].z);
+    let bestTime=localStorage.getItem('bestTime_'+trackIndex);
+    if(!bestTime || time<bestTime) {
+      localStorage.setItem('bestTime_'+trackIndex,time.toFixed(2));
+      document.getElementById('bestTime').textContent=`Best Time: ${time.toFixed(2)}s`;
     }
     alert(`Lap finished in ${time.toFixed(2)}s!`);
-    kart.position.set(0,1,0);
-    kart.rotation.y = 0;
-    speed=0;
+    tPos=0; speed=0;
+    checkpoints.forEach(c=>c.passed=false);
   }
 
   renderer.render(scene,camera);
@@ -163,9 +227,8 @@ function animate(){
 animate();
 
 // Start timer on first key press
-document.addEventListener('keydown', e=>{
-  if(!running) startTimer();
-});
+document.addEventListener('keydown', e=>{ if(!running && trackCurve) running=true; });
 </script>
+
 </body>
 </html>
