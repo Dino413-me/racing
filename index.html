@@ -3,61 +3,60 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Simple Racing Game</title>
+<title>Racing Game</title>
 <style>
-  body {
-    margin: 0;
-    background: #222;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-  }
-  canvas {
-    background: #555;
-    display: block;
-    border: 5px solid #fff;
-  }
+  body { margin: 0; background: #222; display: flex; flex-direction: column; align-items: center; font-family: Arial, sans-serif; color: white; }
+  canvas { background: #555; display: block; border: 5px solid #fff; margin-top: 20px; }
+  #menu { margin-top: 50px; }
+  button { margin: 5px; padding: 10px 20px; font-size: 16px; cursor: pointer; }
 </style>
 </head>
 <body>
+<h1>Racing Game</h1>
+<div id="menu">
+  <p>Select a track:</p>
+  <button onclick="startGame(0)">Track 1</button>
+  <button onclick="startGame(1)">Track 2</button>
+  <button onclick="startGame(2)">Track 3</button>
+  <button onclick="startGame(3)">Track 4</button>
+  <button onclick="startGame(4)">Track 5</button>
+</div>
 <canvas id="gameCanvas" width="400" height="600"></canvas>
+<p id="timer">Time: 0s</p>
+<p id="highscore">Highscore: 0s</p>
 
 <script>
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
-const road = {
-  x: canvas.width / 4,
-  width: canvas.width / 2,
-  color: '#333'
-};
+let tracks = [
+  {color: '#333', laneColor: 'white'}, 
+  {color: '#444', laneColor: 'yellow'}, 
+  {color: '#555', laneColor: 'cyan'}, 
+  {color: '#666', laneColor: 'pink'}, 
+  {color: '#777', laneColor: 'orange'}
+];
 
-const player = {
-  x: canvas.width / 2 - 15,
-  y: canvas.height - 60,
-  width: 30,
-  height: 50,
-  color: 'red',
-  speed: 5
-};
-
+const player = {x: 185, y: 520, width: 30, height: 50, color: 'red', speed: 5};
 let obstacles = [];
 let obstacleSpeed = 3;
 let score = 0;
 let gameOver = false;
+let currentTrack = 0;
+let timer = 0;
+let timerInterval;
 
 function drawRoad() {
-  ctx.fillStyle = road.color;
-  ctx.fillRect(road.x, 0, road.width, canvas.height);
-  // lane lines
-  ctx.strokeStyle = 'white';
+  const track = tracks[currentTrack];
+  ctx.fillStyle = track.color;
+  ctx.fillRect(100, 0, 200, canvas.height);
+  ctx.strokeStyle = track.laneColor;
   ctx.lineWidth = 4;
+  ctx.setLineDash([20, 20]);
   for (let i = 0; i < 5; i++) {
-    ctx.setLineDash([20, 20]);
     ctx.beginPath();
-    ctx.moveTo(canvas.width/2, i*150);
-    ctx.lineTo(canvas.width/2, i*150+100);
+    ctx.moveTo(200, i*150);
+    ctx.lineTo(200, i*150+100);
     ctx.stroke();
   }
 }
@@ -69,22 +68,18 @@ function drawPlayer() {
 
 function drawObstacles() {
   ctx.fillStyle = 'blue';
-  obstacles.forEach(obs => {
-    ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
-  });
+  obstacles.forEach(obs => ctx.fillRect(obs.x, obs.y, obs.width, obs.height));
 }
 
 function moveObstacles() {
-  obstacles.forEach(obs => {
-    obs.y += obstacleSpeed;
-  });
+  obstacles.forEach(obs => obs.y += obstacleSpeed);
   obstacles = obstacles.filter(obs => obs.y < canvas.height);
 }
 
 function generateObstacles() {
   if (Math.random() < 0.02) {
     let obsWidth = Math.random() * 50 + 30;
-    let obsX = road.x + Math.random() * (road.width - obsWidth);
+    let obsX = 100 + Math.random() * (200 - obsWidth);
     obstacles.push({x: obsX, y: -50, width: obsWidth, height: 20});
   }
 }
@@ -96,9 +91,7 @@ function checkCollision() {
       player.x + player.width > obs.x &&
       player.y < obs.y + obs.height &&
       player.y + player.height > obs.y
-    ) {
-      gameOver = true;
-    }
+    ) gameOver = true;
   }
 }
 
@@ -108,8 +101,21 @@ function drawScore() {
   ctx.fillText(`Score: ${score}`, 10, 30);
 }
 
+function drawTimer() {
+  document.getElementById('timer').textContent = `Time: ${timer}s`;
+}
+
+function updateHighscore() {
+  let hs = parseInt(localStorage.getItem('highscore')) || 0;
+  if (timer > hs) {
+    localStorage.setItem('highscore', timer);
+    hs = timer;
+  }
+  document.getElementById('highscore').textContent = `Highscore: ${hs}s`;
+}
+
 function gameLoop() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.clearRect(0,0,canvas.width,canvas.height);
   drawRoad();
   drawPlayer();
   drawObstacles();
@@ -121,22 +127,34 @@ function gameLoop() {
     score++;
     requestAnimationFrame(gameLoop);
   } else {
+    clearInterval(timerInterval);
     ctx.fillStyle = 'white';
     ctx.font = '40px Arial';
     ctx.fillText('GAME OVER', canvas.width/2 - 120, canvas.height/2);
+    updateHighscore();
+    document.getElementById('menu').style.display = 'block';
   }
 }
 
+function startGame(trackIndex) {
+  currentTrack = trackIndex;
+  obstacles = [];
+  score = 0;
+  timer = 0;
+  gameOver = false;
+  player.x = 185;
+  document.getElementById('menu').style.display = 'none';
+  timerInterval = setInterval(() => { timer++; drawTimer(); }, 1000);
+  gameLoop();
+}
+
 document.addEventListener('keydown', e => {
-  if (e.key === 'ArrowLeft' && player.x > road.x) {
-    player.x -= player.speed;
-  }
-  if (e.key === 'ArrowRight' && player.x + player.width < road.x + road.width) {
-    player.x += player.speed;
-  }
+  if (e.key === 'ArrowLeft' && player.x > 100) player.x -= player.speed;
+  if (e.key === 'ArrowRight' && player.x + player.width < 300) player.x += player.speed;
 });
 
-gameLoop();
+// Load highscore on page load
+updateHighscore();
 </script>
 </body>
 </html>
