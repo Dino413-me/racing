@@ -49,6 +49,7 @@
 <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
 <script>
 let scene = new THREE.Scene();
+scene.background = new THREE.Color(0x87CEEB); // Blue sky
 let camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
 let renderer = new THREE.WebGLRenderer({antialias:true});
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -66,19 +67,42 @@ let ground = new THREE.Mesh(new THREE.PlaneGeometry(1000,1000,50,50), groundMat)
 ground.rotation.x = -Math.PI/2;
 scene.add(ground);
 
-// Tracks: 5 tracks with increasing difficulty (x, y, z points)
+// Outer barriers to keep player on map
+function buildOuterBarriers(size=200){
+  let barrierMat = new THREE.MeshPhongMaterial({color:0x444444});
+  let thickness = 5, height = 20;
+
+  // +X wall
+  let wall1 = new THREE.Mesh(new THREE.BoxGeometry(thickness, height, size*2), barrierMat);
+  wall1.position.set(size, height/2, 0); scene.add(wall1);
+
+  // -X wall
+  let wall2 = new THREE.Mesh(new THREE.BoxGeometry(thickness, height, size*2), barrierMat);
+  wall2.position.set(-size, height/2, 0); scene.add(wall2);
+
+  // +Z wall
+  let wall3 = new THREE.Mesh(new THREE.BoxGeometry(size*2, height, thickness), barrierMat);
+  wall3.position.set(0, height/2, size); scene.add(wall3);
+
+  // -Z wall
+  let wall4 = new THREE.Mesh(new THREE.BoxGeometry(size*2, height, thickness), barrierMat);
+  wall4.position.set(0, height/2, -size); scene.add(wall4);
+}
+buildOuterBarriers(200);
+
+// Tracks
 let tracks = [
-  [[0,0,0],[40,0,0],[40,0,40],[0,0,40],[0,0,0]], // Track 1 easy
-  [[0,0,0],[30,5,0],[60,0,30],[30,5,60],[0,0,30],[0,0,0]], // Track 2
-  [[0,0,0],[20,0,0],[40,5,20],[60,0,40],[40,5,60],[20,0,40],[0,0,20],[0,0,0]], // Track3 hills
-  [[0,0,0],[15,5,0],[30,0,15],[45,5,30],[60,0,45],[45,5,60],[30,0,45],[15,5,30],[0,0,15],[0,0,0]], // Track4 jumps
-  [[0,0,0],[10,5,0],[20,0,10],[30,5,20],[40,0,30],[30,5,40],[20,0,30],[10,5,20],[0,0,10],[0,0,0]] // Track5 hard
+  [[0,0,0],[40,0,0],[40,0,40],[0,0,40],[0,0,0]],
+  [[0,0,0],[30,5,0],[60,0,30],[30,5,60],[0,0,30],[0,0,0]],
+  [[0,0,0],[20,0,0],[40,5,20],[60,0,40],[40,5,60],[20,0,40],[0,0,20],[0,0,0]],
+  [[0,0,0],[15,5,0],[30,0,15],[45,5,30],[60,0,45],[45,5,60],[30,0,45],[15,5,30],[0,0,15],[0,0,0]],
+  [[0,0,0],[10,5,0],[20,0,10],[30,5,20],[40,0,30],[30,5,40],[20,0,30],[10,5,20],[0,0,10],[0,0,0]]
 ];
 
 let trackCurve, kart, tPos, speed, obstacles=[], running=false, time=0, maxSpeed=0.001;
 let checkpoints=[];
 
-// Build walls
+// Track walls
 function buildWalls(curve,numWalls=50){
   let wallGroup = new THREE.Group();
   for(let i=0;i<numWalls;i++){
@@ -98,7 +122,7 @@ function buildWalls(curve,numWalls=50){
   scene.add(wallGroup);
 }
 
-// Build checkpoints
+// Checkpoints
 function buildCheckpoints(curve,numCheckpoints=10){
   checkpoints=[];
   for(let i=1;i<=numCheckpoints;i++){
