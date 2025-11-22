@@ -1,31 +1,33 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TrackMania Low-Poly Kart</title>
-<link rel="stylesheet" href="style.css">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>TrackMania — Low-Poly Stadium</title>
+<link rel="stylesheet" href="style.css" />
 </head>
 <body>
+  <div id="menu" class="ui-panel">
+    <h1>TrackMania — Stadium (Low-Poly)</h1>
+    <p>Select a track</p>
+    <div class="buttons">
+      <button onclick="startGame(0)">Track 1 (Easy)</button>
+      <button onclick="startGame(1)">Track 2</button>
+      <button onclick="startGame(2)">Track 3</button>
+      <button onclick="startGame(3)">Track 4</button>
+      <button onclick="startGame(4)">Track 5 (Hard)</button>
+    </div>
+    <p class="small">Controls: W / ↑ = accelerate, S / ↓ = brake, A / ← D / → = steer, R = restart</p>
+  </div>
 
-<div id="menu">
-  <h1>TrackMania Stadium - Select Track</h1>
-  <button onclick="startGame(0)">Track 1 (Easy)</button>
-  <button onclick="startGame(1)">Track 2</button>
-  <button onclick="startGame(2)">Track 3</button>
-  <button onclick="startGame(3)">Track 4</button>
-  <button onclick="startGame(4)">Track 5 (Hard)</button>
-</div>
+  <div id="hud">
+    <div id="timer">Time: 0.00s</div>
+    <div id="bestTime">Best: --</div>
+  </div>
 
-<div id="overlay">
-  <p id="timer">Time: 0.00s</p>
-  <p id="bestTime">Best Time: --</p>
-</div>
+  <button id="menuBtn">Main Menu</button>
 
-<button id="menuBtn">Main Menu</button>
-
-<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
-<script src="game.js"></script>
-
+  <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
+  <script src="game.js"></script>
 </body>
 </html>
