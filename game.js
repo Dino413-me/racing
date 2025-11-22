@@ -2,25 +2,25 @@
 let scene = new THREE.Scene();
 scene.background = new THREE.Color(0x87CEEB); // Sky blue
 
-let camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+let camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 3000);
 let renderer = new THREE.WebGLRenderer({antialias:true});
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
 // Lights
-scene.add(new THREE.AmbientLight(0xffffff,0.5));
+scene.add(new THREE.AmbientLight(0xffffff,0.6));
 let dirLight = new THREE.DirectionalLight(0xffffff,1);
-dirLight.position.set(50,50,50);
+dirLight.position.set(100,200,100);
 scene.add(dirLight);
 
 // Ground
 let groundMat = new THREE.MeshPhongMaterial({color:0x228B22, flatShading:true});
-let ground = new THREE.Mesh(new THREE.PlaneGeometry(2000,2000,50,50), groundMat);
+let ground = new THREE.Mesh(new THREE.PlaneGeometry(5000,5000,50,50), groundMat);
 ground.rotation.x = -Math.PI/2;
 scene.add(ground);
 
 // Outer barriers
-function buildOuterBarriers(size=300){
+function buildOuterBarriers(size=500){
   let mat = new THREE.MeshPhongMaterial({color:0x444444});
   let thickness = 5, height=20;
   let walls = [];
@@ -32,71 +32,84 @@ function buildOuterBarriers(size=300){
 }
 buildOuterBarriers();
 
-// ====== Tracks (low-poly style) ======
+// ====== Track pieces ======
+const TRACK_SIZE = 40;
+const TRACK_HEIGHT = 2;
+
 let tracks = [
-  // Track 1 - flat
-  [{x:0,y:0,z:0},{x:40,y:0,z:0},{x:40,y:0,z:40},{x:0,y:0,z:40},{x:0,y:0,z:0}],
-  // Track 2 - small ramps
-  [{x:0,y:0,z:0},{x:30,y:2,z:0},{x:60,y:0,z:30},{x:30,y:2,z:60},{x:0,y:0,z:30},{x:0,y:0,z:0}],
-  // Track 3 - hills
-  [{x:0,y:0,z:0},{x:20,y:0,z:0},{x:40,y:3,z:20},{x:60,y:0,z:40},{x:40,y:3,z:60},{x:20,y:0,z:40},{x:0,y:0,z:20},{x:0,y:0,z:0}],
-  // Track 4 - ramps + hills
-  [{x:0,y:0,z:0},{x:15,y:2,z:0},{x:30,y:0,z:15},{x:45,y:2,z:30},{x:60,y:0,z:45},{x:45,y:2,z:60},{x:30,y:0,z:45},{x:15,y:2,z:30},{x:0,y:0,z:15},{x:0,y:0,z:0}],
-  // Track 5 - advanced jumps
-  [{x:0,y:0,z:0},{x:10,y:3,z:0},{x:20,y:0,z:10},{x:30,y:3,z:20},{x:40,y:0,z:30},{x:30,y:3,z:40},{x:20,y:0,z:30},{x:10,y:3,z:20},{x:0,y:0,z:10},{x:0,y:0,z:0}]
+  // Track 1 - Easy
+  [
+    {x:0,y:0,z:0,type:"straight",dir:0},{x:TRACK_SIZE,y:0,z:0,type:"straight",dir:0},
+    {x:TRACK_SIZE*2,y:0,z:0,type:"ramp",dir:0,height:5},{x:TRACK_SIZE*3,y:5,z:0,type:"straight",dir:0},
+    {x:TRACK_SIZE*4,y:5,z:0,type:"turn",dir:90},{x:TRACK_SIZE*4,y:5,z:TRACK_SIZE,type:"straight",dir:90},
+    {x:TRACK_SIZE*4,y:5,z:TRACK_SIZE*2,type:"jump",dir:90,height:5},{x:TRACK_SIZE*4,y:10,z:TRACK_SIZE*3,type:"straight",dir:90}
+  ],
+  // Track 2
+  [
+    {x:0,y:0,z:0,type:"straight",dir:0},{x:TRACK_SIZE,y:0,z:0,type:"ramp",dir:0,height:5},
+    {x:TRACK_SIZE*2,y:5,z:0,type:"straight",dir:0},{x:TRACK_SIZE*3,y:5,z:0,type:"turn",dir:90},
+    {x:TRACK_SIZE*3,y:5,z:TRACK_SIZE,type:"ramp",dir:90,height:-3},{x:TRACK_SIZE*3,y:2,z:TRACK_SIZE*2,type:"jump",dir:90,height:4},
+    {x:TRACK_SIZE*3,y:6,z:TRACK_SIZE*3,type:"straight",dir:90}
+  ],
+  // Track 3
+  [
+    {x:0,y:0,z:0,type:"straight",dir:0},{x:TRACK_SIZE,y:0,z:0,type:"ramp",dir:0,height:5},
+    {x:TRACK_SIZE*2,y:5,z:0,type:"jump",dir:0,height:5},{x:TRACK_SIZE*3,y:10,z:0,type:"turn",dir:90},
+    {x:TRACK_SIZE*3,y:10,z:TRACK_SIZE,type:"ramp",dir:90,height:-4},{x:TRACK_SIZE*3,y:6,z:TRACK_SIZE*2,type:"straight",dir:90},
+    {x:TRACK_SIZE*3,y:6,z:TRACK_SIZE*3,type:"jump",dir:90,height:3},{x:TRACK_SIZE*3,y:9,z:TRACK_SIZE*4,type:"straight",dir:90}
+  ],
+  // Track 4
+  [
+    {x:0,y:0,z:0,type:"straight",dir:0},{x:TRACK_SIZE,y:0,z:0,type:"ramp",dir:0,height:7},
+    {x:TRACK_SIZE*2,y:7,z:0,type:"turn",dir:90},{x:TRACK_SIZE*2,y:7,z:TRACK_SIZE,type:"jump",dir:90,height:5},
+    {x:TRACK_SIZE*2,y:12,z:TRACK_SIZE*2,type:"straight",dir:90},{x:TRACK_SIZE*3,y:12,z:TRACK_SIZE*2,type:"ramp",dir:0,height:-7},
+    {x:TRACK_SIZE*4,y:5,z:TRACK_SIZE*2,type:"turn",dir:-90},{x:TRACK_SIZE*4,y:5,z:TRACK_SIZE*1,type:"jump",dir:-90,height:4}
+  ],
+  // Track 5 - Hard
+  [
+    {x:0,y:0,z:0,type:"straight",dir:0},{x:TRACK_SIZE,y:0,z:0,type:"ramp",dir:0,height:8},
+    {x:TRACK_SIZE*2,y:8,z:0,type:"jump",dir:0,height:5},{x:TRACK_SIZE*3,y:13,z:0,type:"turn",dir:90},
+    {x:TRACK_SIZE*3,y:13,z:TRACK_SIZE,type:"ramp",dir:90,height:-6},{x:TRACK_SIZE*3,y:7,z:TRACK_SIZE*2,type:"jump",dir:90,height:4},
+    {x:TRACK_SIZE*3,y:11,z:TRACK_SIZE*3,type:"straight",dir:90},{x:TRACK_SIZE*4,y:11,z:TRACK_SIZE*3,type:"ramp",dir:0,height:-5},
+    {x:TRACK_SIZE*5,y:6,z:TRACK_SIZE*3,type:"jump",dir:0,height:3}
+  ]
 ];
 
-let trackCurve, kart, tPos, speed, obstacles=[], running=false, time=0, maxSpeed=0.003;
-let checkpoints=[];
+let trackBlocks = [];
+let kart, tPos=0, speed=0, running=false, time=0, checkpoints=[];
+let currentTrack = 0;
 
-// ====== Build track pieces ======
+// ====== Build track blocks ======
 function buildTrack(trackIndex){
-  scene.children = scene.children.filter(obj=>obj===ground||obj.type==="DirectionalLight"||obj.type==="AmbientLight");
-  obstacles=[];
-  let pts = tracks[trackIndex].map(p=>new THREE.Vector3(p.x,p.y,p.z));
-  trackCurve = new THREE.CatmullRomCurve3(pts,false);
+  trackBlocks.forEach(b=>scene.remove(b));
+  trackBlocks=[];
+  checkpoints=[];
+  currentTrack=trackIndex;
 
-  // Track Mesh
-  let mesh = new THREE.Mesh(
-    new THREE.TubeGeometry(trackCurve, 200, 2, 8, false),
-    new THREE.MeshPhongMaterial({color:0x888888, flatShading:true})
-  );
-  mesh.position.y+=1;
-  scene.add(mesh);
+  let track = tracks[trackIndex];
+  track.forEach((piece)=>{
+    let mat = new THREE.MeshPhongMaterial({color:piece.type==="jump"?0xffd700:0x888888, flatShading:true});
+    let geom = new THREE.BoxGeometry(TRACK_SIZE,TRACK_HEIGHT,TRACK_SIZE);
+    let block = new THREE.Mesh(geom,mat);
+    block.position.set(piece.x,piece.y+TRACK_HEIGHT/2,piece.z);
+    block.rotation.y = THREE.MathUtils.degToRad(piece.dir);
+    scene.add(block);
+    trackBlocks.push(block);
 
-  // Kart
-  kart = new THREE.Mesh(new THREE.BoxGeometry(4,2,6),new THREE.MeshPhongMaterial({color:0xff0000, flatShading:true}));
-  kart.position.copy(trackCurve.getPointAt(0));
+    let box = new THREE.Box3().setFromObject(block);
+    checkpoints.push({box:box,passed:false});
+  });
+
+  if(kart) scene.remove(kart);
+  kart = new THREE.Mesh(new THREE.BoxGeometry(4,2,6),new THREE.MeshPhongMaterial({color:0xff0000,flatShading:true}));
+  let first = track[0];
+  kart.position.set(first.x,first.y+TRACK_HEIGHT+1,first.z);
   scene.add(kart);
 
-  // Obstacles
-  let numObs=3+trackIndex*2;
-  for(let i=0;i<numObs;i++){
-    let t=Math.random();
-    let pos=trackCurve.getPointAt(t);
-    let obs=new THREE.Mesh(new THREE.BoxGeometry(3,3,3), new THREE.MeshPhongMaterial({color:0x0000ff, flatShading:true}));
-    obs.position.copy(pos); scene.add(obs); obstacles.push(obs);
-  }
-
-  buildCheckpoints(trackCurve);
   tPos=0; speed=0; time=0; running=false;
-  let bestTime=localStorage.getItem('bestTime_'+trackIndex);
+  document.getElementById('timer').textContent="Time: 0.00s";
+  let bestTime = localStorage.getItem('bestTime_'+trackIndex);
   document.getElementById('bestTime').textContent = bestTime ? `Best Time: ${bestTime}s` : "Best Time: --";
-}
-
-// ====== Checkpoints ======
-function buildCheckpoints(curve,num=10){
-  checkpoints=[];
-  for(let i=1;i<=num;i++){
-    let t=i/num;
-    let pos=curve.getPointAt(t);
-    let size=10;
-    let box = new THREE.Box3(
-      new THREE.Vector3(pos.x-size/2,pos.y-5,pos.z-size/2),
-      new THREE.Vector3(pos.x+size/2,pos.y+5,pos.z+size/2)
-    );
-    checkpoints.push({box:box,passed:false});
-  }
 }
 
 // ====== Start game ======
@@ -109,82 +122,57 @@ function startGame(trackIndex){
 let keys={};
 document.addEventListener('keydown',e=>keys[e.key.toLowerCase()]=true);
 document.addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
-
-document.addEventListener('keydown', e=>{
-  if(e.key.toLowerCase()==='r' && trackCurve){
-    tPos=0; speed=0; time=0; running=false;
-    kart.position.copy(trackCurve.getPointAt(0));
-    kart.lookAt(trackCurve.getPointAt(0.01));
-    checkpoints.forEach(c=>c.passed=false);
-    document.getElementById('timer').textContent=`Time: 0.00s`;
-  }
+document.addEventListener('keydown',e=>{
+  if(e.key.toLowerCase()==='r') buildTrack(currentTrack);
 });
-
-// Main menu
-document.getElementById('menuBtn').addEventListener('click', ()=>{
-  document.getElementById('menu').style.display='block';
-  scene.children = scene.children.filter(obj=>obj===ground||obj.type==="DirectionalLight"||obj.type==="AmbientLight");
-  trackCurve=null;
-  running=false;
-});
+document.getElementById('menuBtn').addEventListener('click', ()=>{ document.getElementById('menu').style.display='block'; });
 
 // Timer
 setInterval(()=>{
-  if(running){time+=0.016; document.getElementById('timer').textContent=`Time: ${time.toFixed(2)}s`;}
+  if(running) { time+=0.016; document.getElementById('timer').textContent=`Time: ${time.toFixed(2)}s`; }
 },16);
 
-// Animate
+// ====== Animate ======
 function animate(){
   requestAnimationFrame(animate);
-  if(!trackCurve) return;
+  if(!kart) return;
 
-  // Controls
-  if(keys['arrowup'] || keys['w']) speed+=0.0002;
-  if(keys['arrowdown'] || keys['s']) speed-=0.0002;
-  if(keys['arrowleft'] || keys['a']) tPos-=0.0005;
-  if(keys['arrowright'] || keys['d']) tPos+=0.0005;
-  speed=Math.max(Math.min(speed,maxSpeed),0);
-  tPos+=speed;
+  // Forward/backward
+  speed = 0;
+  if(keys['w']||keys['arrowup']) speed=0.2; // move forward
+  if(keys['s']||keys['arrowdown']) speed=-0.1; // brake/back
 
-  // Kart movement
-  let pos=trackCurve.getPointAt(Math.min(tPos,1));
-  let next=trackCurve.getPointAt(Math.min(tPos+0.01,1));
-  kart.position.copy(pos); kart.lookAt(next);
+  // Steering
+  if(keys['a']||keys['arrowleft']) kart.rotation.y += 0.03;
+  if(keys['d']||keys['arrowright']) kart.rotation.y -= 0.03;
 
-  // Camera
-  let camTarget = new THREE.Vector3().copy(kart.position);
-  camera.position.lerp(camTarget.clone().add(new THREE.Vector3(-10,5,-15)),0.1);
+  // Move kart
+  let forward = new THREE.Vector3(0,0,1).applyEuler(kart.rotation).multiplyScalar(speed);
+  kart.position.add(forward);
+
+  // Camera follow
+  let camPos = kart.position.clone().add(new THREE.Vector3(-20,15,-30));
+  camera.position.lerp(camPos,0.1);
   camera.lookAt(kart.position);
 
-  // Obstacles
-  obstacles.forEach(obs=>{
-    let dx=kart.position.x-obs.position.x;
-    let dz=kart.position.z-obs.position.z;
-    let dy=kart.position.y-obs.position.y;
-    let dist=Math.sqrt(dx*dx+dz*dz+dy*dy);
-    if(dist<5) speed*=0.5;
-  });
-
   // Checkpoints
-  checkpoints.forEach(c=>{ if(!c.passed && c.box.containsPoint(kart.position)) c.passed=true; });
-  let allPassed=checkpoints.every(c=>c.passed);
+  checkpoints.forEach(c=>{
+    if(!c.passed && c.box.containsPoint(kart.position)) c.passed=true;
+  });
+  let allPassed = checkpoints.every(c=>c.passed);
 
-  // Finish
-  if(running && allPassed && tPos>=1){
+  if(running && allPassed){
     running=false;
-    let trackIndex = tracks.findIndex(t=>t[0].x===trackCurve.points[0].x && t[0].z===trackCurve.points[0].z);
-    let bestTime=localStorage.getItem('bestTime_'+trackIndex);
+    let bestTime = localStorage.getItem('bestTime_'+currentTrack);
     if(!bestTime || time<bestTime){
-      localStorage.setItem('bestTime_'+trackIndex,time.toFixed(2));
+      localStorage.setItem('bestTime_'+currentTrack,time.toFixed(2));
       document.getElementById('bestTime').textContent=`Best Time: ${time.toFixed(2)}s`;
     }
-    alert(`Lap finished in ${time.toFixed(2)}s!`);
-    tPos=0; speed=0; checkpoints.forEach(c=>c.passed=false);
+    alert(`Track finished in ${time.toFixed(2)}s!`);
   }
+
+  if(!running && speed>0) running=true;
 
   renderer.render(scene,camera);
 }
 animate();
-
-// Start timer on first key press
-document.addEventListener('keydown', e=>{ if(!running && trackCurve) running=true; });
