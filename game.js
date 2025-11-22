@@ -17,25 +17,20 @@ init();
 animate();
 
 function init() {
-    // Scene
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0x87CEEB);
 
-    // Camera
     camera = new THREE.PerspectiveCamera(75, innerWidth/innerHeight, 0.1, 2000);
     camera.position.set(0, 6, -12);
 
-    // Renderer
     renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(innerWidth, innerHeight);
     document.body.appendChild(renderer.domElement);
 
-    // Light
     const light = new THREE.DirectionalLight(0xffffff, 1);
     light.position.set(10,20,10);
     scene.add(light);
 
-    // Ground
     const ground = new THREE.Mesh(
         new THREE.PlaneGeometry(5000, 5000),
         new THREE.MeshLambertMaterial({ color: 0x55aa55 })
@@ -74,6 +69,8 @@ function resetCar() {
     car.rotation.y = 0;
     velocity = 0;
     running = false;
+    lastCheckpoint = null;
+
     document.getElementById("finishText").innerText = "";
     document.getElementById("timer").innerText = "0.00";
 }
@@ -92,7 +89,6 @@ function updateTimer() {
 function animate() {
     requestAnimationFrame(animate);
 
-    // Car movement
     if (keys["w"]) {
         if (!running) startTimer();
         velocity = Math.min(velocity + 0.002, 0.35);
@@ -100,32 +96,24 @@ function animate() {
         velocity *= 0.95;
     }
 
-    // Steering
     if (keys["a"]) car.rotation.y += 0.04;
     if (keys["d"]) car.rotation.y -= 0.04;
 
-    // Move forward
     car.position.x -= Math.sin(car.rotation.y) * velocity * 10;
     car.position.z -= Math.cos(car.rotation.y) * velocity * 10;
 
-    // Camera follow
     const camOffset = new THREE.Vector3(0, 6, -12).applyAxisAngle(new THREE.Vector3(0,1,0), car.rotation.y);
     camera.position.lerp(car.position.clone().add(camOffset), 0.1);
     camera.lookAt(car.position);
 
-    // Check finish
     checkFinish();
-
     updateTimer();
+
     renderer.render(scene, camera);
 }
 
-/* ---------------- TRACK BUILDER FUNCTIONS ---------------- */
-
 function buildTrack1() {
-    // Big straight → turn → jump → finish
     buildRoad([ [0,0], [0,-50], [30,-120], [30,-180], [0,-240] ]);
-
     buildFinish(0, -240);
     buildCheckpoint(0, -120);
 }
@@ -134,7 +122,6 @@ function buildTrack2() {
     buildRoad([ 
         [0,0], [0,-60], [40,-100], [80,-100], [120,-60], [120,0], [80,40], [40,40], [0,0]
     ]);
-
     buildFinish(0, 0);
     buildCheckpoint(80, -100);
 }
@@ -143,7 +130,6 @@ function buildTrack3() {
     buildRoad([
         [0,0], [0,-80], [-40,-140], [-80,-160], [-120,-120], [-100,-60], [-60,-20], [0,0]
     ]);
-
     buildFinish(0,0);
     buildCheckpoint(-80, -160);
 }
@@ -167,7 +153,6 @@ function buildRoad(points) {
         segment.rotation.y = -angle;
 
         trackGroup.add(segment);
-
         buildWalls(segment, length, angle);
     }
 }
@@ -215,9 +200,13 @@ function checkFinish() {
                 if (lastCheckpoint) {
                     running = false;
                     const t = document.getElementById("timer").innerText;
-                    document.getElementById("finishText").innerText = "Finished in " + t + " seconds!";
+                    document.getElementById("finishText").innerText =
+                        "Finished in " + t + " seconds!";
                 }
             }
         }
     });
 }
+
+/* ---------------- FIX FOR TRACK BUTTONS ---------------- */
+window.loadTrack = loadTrack;
