@@ -1,33 +1,22 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>TrackMania — Low-Poly Stadium</title>
-<link rel="stylesheet" href="style.css" />
+    <title>Trackmania Low-Poly</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div id="menu" class="ui-panel">
-    <h1>TrackMania — Stadium (Low-Poly)</h1>
-    <p>Select a track</p>
-    <div class="buttons">
-      <button onclick="startGame(0)">Track 1 (Easy)</button>
-      <button onclick="startGame(1)">Track 2</button>
-      <button onclick="startGame(2)">Track 3</button>
-      <button onclick="startGame(3)">Track 4</button>
-      <button onclick="startGame(4)">Track 5 (Hard)</button>
+    <div id="ui">
+        <h1>LOW-POLY TRACKMANIA</h1>
+        <div id="timer">0.00</div>
+        <div id="trackSelect">
+            <button onclick="loadTrack(1)">Track 1</button>
+            <button onclick="loadTrack(2)">Track 2</button>
+            <button onclick="loadTrack(3)">Track 3</button>
+        </div>
+        <div id="finishText"></div>
     </div>
-    <p class="small">Controls: W / ↑ = accelerate, S / ↓ = brake, A / ← D / → = steer, R = restart</p>
-  </div>
 
-  <div id="hud">
-    <div id="timer">Time: 0.00s</div>
-    <div id="bestTime">Best: --</div>
-  </div>
-
-  <button id="menuBtn">Main Menu</button>
-
-  <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
-  <script src="game.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.164.0/build/three.min.js"></script>
+    <script src="game.js"></script>
 </body>
 </html>
